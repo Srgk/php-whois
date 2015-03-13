@@ -10,7 +10,7 @@ class Whois
 
     private $subDomain;
 
-    private $servers;
+    protected static $servers = array();
 
     /**
      * @param string $domain full domain name (without trailing dot)
@@ -27,14 +27,21 @@ class Whois
             $this->TLDs = $matches[2];
         } else
             throw new \InvalidArgumentException('Invalid $domain syntax');
-        // setup whois servers array from json file
-        $this->servers = json_decode(file_get_contents( __DIR__.'/whois.servers.json' ), true);
+        $this->loadWhoisServers();    
+    }
+    
+    /**
+     * load whois servers array from json file
+     */
+    protected function loadWhoisServers(){
+        if (! self::$servers)
+            self::$servers = json_decode(file_get_contents( __DIR__.'/whois.servers.json' ), true);
     }
 
     public function info()
     {
         if ($this->isValid()) {
-            $whois_server = $this->servers[$this->TLDs][0];
+            $whois_server = self::$servers[$this->TLDs][0];
 
             // If TLDs have been found
             if ($whois_server != '') {
@@ -158,8 +165,8 @@ class Whois
     {
         $whois_string = $this->info();
         $not_found_string = '';
-        if (isset($this->servers[$this->TLDs][1])) {
-           $not_found_string = $this->servers[$this->TLDs][1];
+        if (isset(self::$servers[$this->TLDs][1])) {
+           $not_found_string = self::$servers[$this->TLDs][1];
         }
 
         $whois_string2 = @preg_replace('/' . $this->domain . '/', '', $whois_string);
@@ -184,8 +191,8 @@ class Whois
     public function isValid()
     {
         if (
-            isset($this->servers[$this->TLDs][0])
-            && strlen($this->servers[$this->TLDs][0]) > 6
+            isset(self::$servers[$this->TLDs][0])
+            && strlen(self::$servers[$this->TLDs][0]) > 6
         ) {
             $tmp_domain = strtolower($this->subDomain);
             if (
